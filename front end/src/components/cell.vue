@@ -8,7 +8,11 @@
             <input v-model="password" type="password" name="password" id="password" value="" placeholder="Password" />
             <input v-model="id_number" type="text" name="id_number" id="id_number" value="" placeholder="Identification Number" />
             <input v-model="contact" type="text" name="contact" id="contact" value="" placeholder="Mobile" />
-            <button v-on:click="print()" class="button fit primary" id="create">Create Your Account</button>
+            <div class="row">
+                <input v-model="code" type="text" name="code" id="code" value="" placeholder="Enter the code you received on mobile" />
+                <button v-on:click="sendCode()" class="button fit" id="send_code">Get your code</button>
+            </div>
+            <button v-on:click="create()" class="button fit primary" id="create">Create Your Account</button>
         </div>
     </div>
 </template>
@@ -22,12 +26,63 @@ export default {
             user_name: '',
             password: '',
             id_number: '',
-            contact: ''
+            contact: '',
+            code: '',
+            code_verify: '',
         }
     },
     methods: {
-        print: function () {
-            alert(this.user_name+" "+this.password+" "+this.id_number+" "+this.contact);
+        create: function () {
+            var self = this;
+            if (this.code == "") {
+                alert("You have to input the code you received! ")
+                return;
+            }
+            else if(this.code != this.code_verify) {
+                alert("The code you input is incorrect! ")
+                return;
+            }
+            $.ajax({
+                type: 'post',
+                async: true,
+                crossDomain: true,
+                url: 'http://localhost:8088/bbs/api/create_user',
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader('Content-type', 'application/json')
+                },
+                data: JSON.stringify({"user_name": self.user_name, "password": self.password, "id_number": self.id_number, "contact": self.contact}),
+                success: function (res) {
+                    alert("You have create your account successfully! Please remember your User ID: "+ res.user_id);
+                    window.open("index.html", "_self");
+                },
+                error: function (res) {
+                    console.log('A Something wrong!');
+                }
+            })
+        },
+        sendCode: function () {
+            var self = this;
+            if(this.contact == '') {
+                alert("You have to enter your mobile first! ")
+                return;
+            }
+            $.ajax({
+                type: 'post',
+                async: true,
+                crossDomain: true,
+                url: 'http://localhost:8088/bbs/api/send_MessageCode',
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader('Content-type', 'application/json')
+                },
+                data: JSON.stringify({"contact": self.contact}),
+                success: function (res) {
+                    alert("Your verified code have been sent! ")
+                    self.code_verify = res.code;
+                },
+                error: function (res) {
+                    console.log('A Something wrong!');
+                }
+            })
         }
     }
 }
@@ -38,7 +93,7 @@ export default {
     @import url(../assets/css/style.css);
 
     h1{
-        margin-top: 100px;
+        margin-top: 50px;
         font-size: 60px;
         font-weight: 100;
         margin-bottom: 5px;
@@ -77,9 +132,14 @@ export default {
     }
 
 
-    #user_name, #password, #id_number, #contact{
+    #user_name, #password, #id_number, #contact, #code{
         width: 50%;
         margin: 20px auto;
+    }
+
+    #code, #send_code{
+        width: 25%;
+        display: inline
     }
 
     #create{
